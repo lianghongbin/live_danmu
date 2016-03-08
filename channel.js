@@ -1,6 +1,7 @@
 var app = require('express')();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
+var url = require('url');
 var redis = require('redis');
 
 var tokens = ['123', '234'];
@@ -8,7 +9,6 @@ var tokens = ['123', '234'];
 server.listen(8000);
 var client = redis.createClient(6379,'127.0.0.1',{});
 var publisher = redis.createClient(6379,'127.0.0.1',{});
-var subscriber = redis.createClient(6379,'127.0.0.1',{});
 
 app.get('/', function (req, res) {
     var params = url.parse(req.url, true).query;//解释url参数部分name=zzl&email=zzl@sina.com
@@ -20,10 +20,10 @@ app.get('/', function (req, res) {
 
     console.log('receive a danmu push.');
 
-    if (typeof(token)=="undefined") {
+    if (typeof(token)!="undefined") {
         console.log(token);
         console.log(content);
-        publisher.publish(token, content);
+        publisher.publish(token, "{\"content\":\""+ content +"\"}");
     }
 
     res.write("success");
@@ -51,6 +51,8 @@ io.sockets.use(function (socket, next) {
 io.sockets.on('connection', function (socket) {
 
     console.log('receive a socket connect socket:' + socket.id);
+    var subscriber = redis.createClient(6379,'127.0.0.1',{});
+
     var token;
     client.get(socket.id, function(err, res) {
         if (!err) {
@@ -68,7 +70,7 @@ io.sockets.on('connection', function (socket) {
     });
 
     socket.on('message', function (data) {//捕获客户端发送名为'my other event'的数据
-        publisher.publish(token, data.content);
+        publisher.publish(token, data);
     });
 
     socket.on('disconnect', function () {

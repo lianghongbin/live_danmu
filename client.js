@@ -1,7 +1,7 @@
 var io = require('socket.io-client');
 
-//var socket = io.connect('ws://localhost:8000',{query:"token=123"});
-var socket = io.connect('http://101.200.128.82:8000',{query:"token=123"});
+var socket = io.connect('ws://localhost:8000',{query:"token=123"});
+//var socket = io.connect('http://101.200.128.82:8000',{query:"token=123"});
 
 
 socket.on('connect', function () {
@@ -9,7 +9,7 @@ socket.on('connect', function () {
 });
 
 socket.on('message', function (data) {
-    console.log('receive a data:' + data.content);
+    console.log('receive a data:' + data);
 });
 
 socket.on('error', function(data){
