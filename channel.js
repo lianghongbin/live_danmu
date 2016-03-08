@@ -1,8 +1,6 @@
 var app = require('express')();
 var server = require('http').createServer(app);
 var io = require('socket.io')(server);
-var url = require('url');
-var util = require('util');
 var redis = require('redis');
 
 var tokens = ['123', '234'];
@@ -10,6 +8,7 @@ var tokens = ['123', '234'];
 server.listen(8000);
 var client = redis.createClient(6379,'127.0.0.1',{});
 var publisher = redis.createClient(6379,'127.0.0.1',{});
+var subscriber = redis.createClient(6379,'127.0.0.1',{});
 
 app.get('/', function (req, res) {
     var params = url.parse(req.url, true).query;//解释url参数部分name=zzl&email=zzl@sina.com
@@ -21,7 +20,7 @@ app.get('/', function (req, res) {
 
     console.log('receive a danmu push.');
 
-    if (!util.isNullOrUndefined(token)) {
+    if (typeof(token)=="undefined") {
         console.log(token);
         console.log(content);
         publisher.publish(token, content);
@@ -33,7 +32,7 @@ app.get('/', function (req, res) {
 
 io.sockets.use(function (socket, next) {
     var query = socket.handshake.query;
-    if (util.isNullOrUndefined(query)) {
+    if (typeof(query) == "undefined") {
         return next(new Error("not authorized"));
     }
 
@@ -52,7 +51,6 @@ io.sockets.use(function (socket, next) {
 io.sockets.on('connection', function (socket) {
 
     console.log('receive a socket connect socket:' + socket.id);
-    var subscriber = redis.createClient();
     var token;
     client.get(socket.id, function(err, res) {
         if (!err) {
@@ -83,7 +81,7 @@ io.sockets.on('connection', function (socket) {
 });
 
 var checkAuthToken = function (token, callback) {
-    if (util.isNullOrUndefined(token)) {
+    if (typeof(token) == "undefined") {
         return callback('error', false);
     }
 

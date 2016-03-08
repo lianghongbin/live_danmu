@@ -1,0 +1,17 @@
+{
+  "appenders": [
+    {
+      "type": "console"
+    },
+    {
+      "type": "file",
+      "filename": "/Users/lianghongbin/WebstormProjects/logs/live/game",
+      "category": "game"
+    },
+    {
+      "type": "file",
+      "filename": "/Users/lianghongbin/WebstormProjects/logs/live/show",
+      "category": "show"
+    }
+  ]
+}
