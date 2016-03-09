@@ -1,7 +1,7 @@
 var io = require('socket.io-client');
 
-//var socket = io.connect('http://101.200.128.82:8000',{query:"token=123"});
-var socket = io.connect('http://localhost:8000',{query:"token=123"});
+//var socket = io('http://101.200.128.82:8000/?token=123&room=LHB');
+var socket = io('http://localhost:8000/?token=123&room=LHB');
 
 
 socket.on('connect', function () {

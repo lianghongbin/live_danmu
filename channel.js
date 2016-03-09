@@ -7,43 +7,66 @@ var redis = require('redis');
 var tokens = ['123', '234'];
 
 server.listen(8000);
-var client = redis.createClient(6379,'127.0.0.1',{});
-var publisher = redis.createClient(6379,'127.0.0.1',{});
+var client = redis.createClient(6379, '127.0.0.1', {});
+var publisher = redis.createClient(6379, '127.0.0.1', {});
+var subscriber = redis.createClient(6379, '127.0.0.1', {});
 
 app.get('/', function (req, res) {
     var params = url.parse(req.url, true).query;//解释url参数部分name=zzl&email=zzl@sina.com
     var token = params.token;
+    var room = params.room;
     var content = params.content;
     var type = params.type;
+
+    var result = checkAuthToken(token, function (err, authorized) {
+        if (err || !authorized) {
+            return false;
+        }
+
+        return true;
+    });
+
+    if (!result) {
+        res.writeHead(200, {'Content-Type': 'application/json;charset=utf-8'});
+        res.write("{'code':'403'}");
+        res.end();
+        return;
+    }
 
     res.writeHead(200, {'Content-Type': 'application/json;charset=utf-8'});
 
     console.log('receive a danmu push.');
 
-    if (typeof(token)!="undefined") {
-        console.log(token);
+    if (typeof(room) != "undefined") {
+        console.log(room);
         console.log(content);
-        publisher.publish(token, "{\"content\":\""+ content +"\"}");
+        publisher.publish(room, "{\"content\":\"" + content + "\"}");
     }
 
-    res.write("success");
+    res.write("{'code':'0'}");
     res.end();
 });
 
 io.sockets.use(function (socket, next) {
     var query = socket.handshake.query;
+
     if (typeof(query) == "undefined") {
         return next(new Error("not authorized"));
     }
 
     var token = query.token;
+    var room = query.room;
+
+    if (typeof(room) == "undefined") {
+        return next(new Error("not room data!"));
+    }
 
     checkAuthToken(token, function (err, authorized) {
         if (err || !authorized) {
             return next(new Error("not authorized"));
         }
 
-        client.set(socket.id, token);
+        client.set(socket.id, room);
         return next();
     });
 });
@@ -51,33 +74,32 @@ io.sockets.use(function (socket, next) {
 io.sockets.on('connection', function (socket) {
 
     console.log('receive a socket connect socket:' + socket.id);
-    var subscriber = redis.createClient(6379,'127.0.0.1',{});
 
-    var token;
-    client.get(socket.id, function(err, res) {
+    var room;
+    client.get(socket.id, function (err, sRoom) {
         if (!err) {
-            subscriber.subscribe(res);
-            token = res;
+            subscriber.subscribe(sRoom);
+            room = sRoom;
 
-            console.log('subscribe token:' + token);
+            console.log('subscribe room:' + room);
         }
     });
 
-    subscriber.on("message", function(channel, message) {
-        console.log(channel);
-        console.log(message);
-        socket.emit("message", message);
+    subscriber.on("message", function (channel, message) {
+        if (channel == room) {
+            socket.emit("message", message);
+        }
     });
 
     socket.on('message', function (data) {//捕获客户端发送名为'my other event'的数据
-        publisher.publish(token, data);
+        publisher.publish(room, data);
     });
 
     socket.on('disconnect', function () {
 
         console.log('disconnect socket:' + socket.id);
-        subscriber.unsubscribe(token);
-        subscriber.quit();
+        subscriber.unsubscribe(room);
+
         client.del(socket.id);
     });
 });
@@ -91,5 +113,5 @@ var checkAuthToken = function (token, callback) {
         return callback(null, true);
     }
 
-    callback('error', false);
+    return callback('error', false);
 };
