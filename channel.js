@@ -19,11 +19,7 @@ app.get('/', function (req, res) {
     var type = params.type;
 
     var result = checkAuthToken(token, function (err, authorized) {
-        if (err || !authorized) {
-            return false;
-        }
-
-        return true;
+        return !(err || !authorized);
     });
 
     if (!result) {
@@ -38,8 +34,6 @@ app.get('/', function (req, res) {
     console.log('receive a danmu push.');
 
     if (typeof(room) != "undefined") {
-        console.log(room);
-        console.log(content);
         publisher.publish(room, "{\"content\":\"" + content + "\"}");
     }
 
